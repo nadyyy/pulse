@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+  CUSTOMER
+}
+
+enum PermissionKey {
+  PRODUCTS_READ
+  PRODUCTS_WRITE
+  CATEGORIES_WRITE
+  ORDERS_READ
+  ORDERS_WRITE
+  USERS_MANAGE
+}
+
+enum CategoryGroup {
+  MEN
+  WOMEN
+  KIDS
+  SPORT
+  SALE
+  APPAREL
+  UNISEX
+}
+
+enum OrderStatus {
+  DRAFT
+  PLACED
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  passwordHash     String
+  role             UserRole          @default(CUSTOMER)
+  sessions         Session[]
+  permissions      StaffPermission[]
+  carts            Cart[]
+  orders           Order[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model StaffPermission {
+  id        String        @id @default(cuid())
+  userId    String
+  key       PermissionKey
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([userId, key])
+  @@index([key])
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Category {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String
+  group     CategoryGroup
+  sortOrder Int           @default(0)
+  parentId  String?
+  parent    Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[]    @relation("CategoryTree")
+  products  ProductCategory[]
+
+  @@unique([parentId, slug])
+  @@index([group, sortOrder])
+}
+
+model Product {
+  id          String            @id @default(cuid())
+  title       String
+  slug        String            @unique
+  description String
+  brand       String
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  categories  ProductCategory[]
+  variants    Variant[]
+  images      ProductImage[]
+
+  @@index([active, createdAt])
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+}
+
+model Variant {
+  id             String      @id @default(cuid())
+  productId      String
+  sku            String      @unique
+  size           String?
+  color          String?
+  priceCents     Int
+  compareAtCents Int?
+  stock          Int
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@index([productId])
+  @@index([size])
+  @@index([color])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String
+  sortOrder Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?
+  sessionId String
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([sessionId])
+  @@index([userId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  variantId String
+  qty       Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String?
+  email         String
+  status        OrderStatus @default(PLACED)
+  subtotalCents Int
+  shippingCents Int
+  taxCents      Int
+  totalCents    Int
+  addressJson   Json
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id                 String  @id @default(cuid())
+  orderId            String
+  variantId          String
+  titleSnapshot      String
+  priceCentsSnapshot Int
+  qty                Int
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant            Variant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([variantId])
+}
