@@ -5,6 +5,14 @@ export const credentialsSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const strongPasswordSchema = z
+  .string()
+  .min(10)
+  .max(128)
+  .regex(/[a-z]/, "must include lowercase")
+  .regex(/[A-Z]/, "must include uppercase")
+  .regex(/[0-9]/, "must include number");
+
 export const productSchema = z.object({
   title: z.string().min(2).max(200),
   slug: z.string().min(2).max(220),

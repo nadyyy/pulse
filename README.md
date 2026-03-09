@@ -28,7 +28,9 @@ cp .env.example .env
 Optional admin bootstrap (in `.env`):
 
 ```env
-BOOTSTRAP_ADMIN_EMAILS="admin@demo.com"
+AUTH_PEPPER="replace-with-long-random-secret"
+BOOTSTRAP_ADMIN_EMAILS=""
+ALLOW_BOOTSTRAP_ADMIN="false"
 ```
 
 2. Start Postgres:
@@ -60,9 +62,18 @@ npm run dev
 
 ## Demo Credentials
 
-- Owner: `owner@demo.com` / `password123`
-- Admin: `admin@demo.com` / `password123`
-- Staff: `staff@demo.com` / `password123` (permission: `PRODUCTS_READ`)
+- Owner: `owner@demo.com` / `DemoPass#2026` (or your `SEED_DEMO_PASSWORD`)
+- Admin: `admin@demo.com` / `DemoPass#2026`
+- Staff: `staff@demo.com` / `DemoPass#2026` (permission: `PRODUCTS_READ`)
+
+## Security Notes
+
+- Passwords are bcrypt-hashed (`PASSWORD_HASH_COST`, default `12`).
+- Login/register are rate-limited by hashed email + hashed IP.
+- Session tokens are random opaque tokens, stored hashed in DB.
+- Cart cookies are signed to detect tampering.
+- Admin/action mutations enforce same-origin checks.
+- Proxy adds baseline security headers and HTTPS redirect in production.
 
 ## Scripts
 

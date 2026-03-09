@@ -33,7 +33,7 @@ export default async function AdminProductsPage() {
     <div className="stack">
       <h1>Products</h1>
       {canWrite ? (
-        <form action={createProductAction} className="card stack" encType="multipart/form-data">
+        <form action={createProductAction} className="card stack">
           <h2>Create Product</h2>
           <p className="muted">
             Add core details, choose categories, and upload a product photo from your

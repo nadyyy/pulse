@@ -9,7 +9,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ROOT_CATEGORY_MODEL_IMAGES, pickByIndex } from "@/lib/curated-images";
 import { resolveProductImageUrl } from "@/lib/product-images";
 
-type CategoryTree = Category & { children: CategoryTree[] };
+type CategoryTree = Category & {
+  children: Array<Category & { children: Category[] }>;
+};
 
 const LABELS: Record<string, string> = {
   men: "Men",

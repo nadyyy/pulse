@@ -7,7 +7,9 @@ import { useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { Drawer } from "@/components/ui/Drawer";
 
-type CategoryTree = Category & { children: CategoryTree[] };
+type CategoryTree = Category & {
+  children: Array<Category & { children: Category[] }>;
+};
 
 export function HeaderMobile({
   roots,

@@ -264,7 +264,7 @@ export default async function AdminProductDetailPage({ params }: PageProps) {
           ))}
         </div>
 
-        <form action={createImageAction} className="stack" encType="multipart/form-data">
+        <form action={createImageAction} className="stack">
           <input type="hidden" name="productId" value={product.id} />
           <label className="field">
             <span>Upload Image</span>

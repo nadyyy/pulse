@@ -29,7 +29,7 @@ export default async function AdminUsersPage() {
           </label>
           <label className="field">
             <span>Password</span>
-            <input name="password" type="password" minLength={8} required />
+            <input name="password" type="password" minLength={10} required />
           </label>
           <label className="field">
             <span>Role</span>

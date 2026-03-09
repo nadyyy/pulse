@@ -24,11 +24,14 @@ export default async function RegisterPage({ searchParams }: PageProps) {
             <input
               name="password"
               type="password"
-              minLength={8}
+              minLength={10}
               required
               autoComplete="new-password"
             />
           </label>
+          <p className="muted">
+            Use at least 10 characters with uppercase, lowercase, and a number.
+          </p>
           <button className="button" type="submit">
             Create account
           </button>

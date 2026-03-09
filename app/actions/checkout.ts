@@ -6,9 +6,14 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { cartTotals, getOrCreateCart } from "@/lib/cart";
 import { prisma } from "@/lib/prisma";
+import { isTrustedActionOrigin } from "@/lib/request-security";
 import { checkoutSchema, parseFormString } from "@/lib/validation";
 
 export async function checkoutAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    redirect("/checkout?error=Security%20check%20failed");
+  }
+
   const parsed = checkoutSchema.safeParse({
     fullName: parseFormString(formData.get("fullName")),
     phone: parseFormString(formData.get("phone")),

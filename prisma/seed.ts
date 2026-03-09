@@ -1,6 +1,7 @@
 import { PermissionKey, PrismaClient, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { hashEmail, normalizeEmail } from "../lib/crypto-security";
 import { productPhotoByAudience } from "../lib/curated-images";
 import { slugify } from "../lib/utils";
 
@@ -616,58 +617,77 @@ async function createTree(params: {
 }
 
 async function seedUsers() {
-  const ownerPasswordHash = await bcrypt.hash("password123", 12);
-  const adminPasswordHash = await bcrypt.hash("password123", 12);
-  const staffPasswordHash = await bcrypt.hash("password123", 12);
-  const employeePasswordHash = await bcrypt.hash("password123", 12);
+  const demoPassword = process.env.SEED_DEMO_PASSWORD ?? "DemoPass#2026";
+  const rawCost = Number(process.env.PASSWORD_HASH_COST ?? 12);
+  const cost =
+    Number.isFinite(rawCost) && rawCost >= 10 && rawCost <= 15
+      ? Math.floor(rawCost)
+      : 12;
+  const ownerEmail = normalizeEmail("owner@demo.com");
+  const adminEmail = normalizeEmail("admin@demo.com");
+  const staffEmail = normalizeEmail("staff@demo.com");
+  const employeeEmail = normalizeEmail("employee@demo.com");
+
+  const ownerPasswordHash = await bcrypt.hash(demoPassword, cost);
+  const adminPasswordHash = await bcrypt.hash(demoPassword, cost);
+  const staffPasswordHash = await bcrypt.hash(demoPassword, cost);
+  const employeePasswordHash = await bcrypt.hash(demoPassword, cost);
 
   const owner = await prisma.user.upsert({
-    where: { email: "owner@demo.com" },
+    where: { email: ownerEmail },
     update: {
+      emailHash: hashEmail(ownerEmail),
       role: UserRole.OWNER,
       passwordHash: ownerPasswordHash,
     },
     create: {
-      email: "owner@demo.com",
+      email: ownerEmail,
+      emailHash: hashEmail(ownerEmail),
       passwordHash: ownerPasswordHash,
       role: UserRole.OWNER,
     },
   });
 
   const staff = await prisma.user.upsert({
-    where: { email: "staff@demo.com" },
+    where: { email: staffEmail },
     update: {
+      emailHash: hashEmail(staffEmail),
       role: UserRole.STAFF,
       passwordHash: staffPasswordHash,
     },
     create: {
-      email: "staff@demo.com",
+      email: staffEmail,
+      emailHash: hashEmail(staffEmail),
       passwordHash: staffPasswordHash,
       role: UserRole.STAFF,
     },
   });
 
   const employee = await prisma.user.upsert({
-    where: { email: "employee@demo.com" },
+    where: { email: employeeEmail },
     update: {
+      emailHash: hashEmail(employeeEmail),
       role: UserRole.STAFF,
       passwordHash: employeePasswordHash,
     },
     create: {
-      email: "employee@demo.com",
+      email: employeeEmail,
+      emailHash: hashEmail(employeeEmail),
       passwordHash: employeePasswordHash,
       role: UserRole.STAFF,
     },
   });
 
   await prisma.user.upsert({
-    where: { email: "admin@demo.com" },
+    where: { email: adminEmail },
     update: {
+      emailHash: hashEmail(adminEmail),
       role: UserRole.ADMIN,
       passwordHash: adminPasswordHash,
     },
     create: {
-      email: "admin@demo.com",
+      email: adminEmail,
+      emailHash: hashEmail(adminEmail),
       passwordHash: adminPasswordHash,
       role: UserRole.ADMIN,
     },

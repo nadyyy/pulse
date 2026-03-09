@@ -11,17 +11,23 @@ import {
   requireUsersManage,
 } from "@/lib/auth";
 import { saveUploadedProductImage } from "@/lib/admin-uploads";
+import { hashEmail, normalizeEmail } from "@/lib/crypto-security";
 import { prisma } from "@/lib/prisma";
+import { isTrustedActionOrigin } from "@/lib/request-security";
 import { slugify } from "@/lib/utils";
 import {
   parseFormInt,
   parseFormString,
   parseOptionalFormString,
   productSchema,
+  strongPasswordSchema,
   variantSchema,
 } from "@/lib/validation";
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requirePermission(PermissionKey.CATEGORIES_WRITE);
 
   const name = parseFormString(formData.get("name"));
@@ -46,6 +52,9 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function updateCategoryAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requirePermission(PermissionKey.CATEGORIES_WRITE);
 
   const id = parseFormString(formData.get("id"));
@@ -68,6 +77,9 @@ export async function updateCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requirePermission(PermissionKey.CATEGORIES_WRITE);
 
   const id = parseFormString(formData.get("id"));
@@ -83,6 +95,9 @@ export async function deleteCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function createProductAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const parsed = productSchema.safeParse({
@@ -147,6 +162,9 @@ export async function createProductAction(formData: FormData): Promise<void> {
 }
 
 export async function updateProductAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const productId = parseFormString(formData.get("productId"));
@@ -190,6 +208,9 @@ export async function updateProductAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const productId = parseFormString(formData.get("productId"));
@@ -206,6 +227,9 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
 }
 
 export async function createVariantAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const productId = parseFormString(formData.get("productId"));
@@ -240,6 +264,9 @@ export async function createVariantAction(formData: FormData): Promise<void> {
 }
 
 export async function updateVariantAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const variantId = parseFormString(formData.get("variantId"));
@@ -273,6 +300,9 @@ export async function updateVariantAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteVariantAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const variantId = parseFormString(formData.get("variantId"));
@@ -289,6 +319,9 @@ export async function deleteVariantAction(formData: FormData): Promise<void> {
 }
 
 export async function createImageAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const productId = parseFormString(formData.get("productId"));
@@ -329,6 +362,9 @@ export async function createImageAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteImageAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const imageId = parseFormString(formData.get("imageId"));
@@ -345,6 +381,9 @@ export async function deleteImageAction(formData: FormData): Promise<void> {
 }
 
 export async function setVariantStockAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requireProductEditor();
 
   const variantId = parseFormString(formData.get("variantId"));
@@ -365,13 +404,27 @@ export async function setVariantStockAction(formData: FormData): Promise<void> {
 }
 
 export async function createStaffUserAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   const actor = await requireUsersManage();
 
-  const email = parseFormString(formData.get("email"));
+  const email = normalizeEmail(parseFormString(formData.get("email")));
+  const emailHash = hashEmail(email);
   const password = parseFormString(formData.get("password"));
   const roleRaw = parseFormString(formData.get("role"));
 
-  if (!email || password.length < 8) {
+  if (!email || !strongPasswordSchema.safeParse(password).success) {
+    return;
+  }
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      OR: [{ emailHash }, { email }],
+    },
+    select: { id: true },
+  });
+  if (existing) {
     return;
   }
 
@@ -393,6 +446,7 @@ export async function createStaffUserAction(formData: FormData): Promise<void> {
   const created = await prisma.user.create({
     data: {
       email,
+      emailHash,
       passwordHash: await hashPassword(password),
       role,
     },
@@ -419,6 +473,9 @@ export async function createStaffUserAction(formData: FormData): Promise<void> {
 }
 
 export async function updateUserPermissionsAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   const actor = await requireUsersManage();
 
   const userId = parseFormString(formData.get("userId"));
@@ -458,6 +515,9 @@ export async function updateUserPermissionsAction(formData: FormData): Promise<v
 }
 
 export async function updateOrderStatusAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
   await requirePermission(PermissionKey.ORDERS_WRITE);
 
   const orderId = parseFormString(formData.get("orderId"));

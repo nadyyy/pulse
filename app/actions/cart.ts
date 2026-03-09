@@ -4,10 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { getOrCreateCart } from "@/lib/cart";
 import { prisma } from "@/lib/prisma";
+import { isTrustedActionOrigin } from "@/lib/request-security";
 import { clamp } from "@/lib/utils";
 import { parseFormInt, parseFormString } from "@/lib/validation";
 
 export async function addToCartAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
+
   const variantId = parseFormString(formData.get("variantId"));
   const qty = clamp(1, parseFormInt(formData.get("qty"), 1), 10);
   if (!variantId) {
@@ -16,26 +21,42 @@ export async function addToCartAction(formData: FormData): Promise<void> {
 
   const cart = await getOrCreateCart();
 
-  const existing = await prisma.cartItem.findFirst({
-    where: {
-      cartId: cart.id,
-      variantId,
+  const existing = await prisma.cart.findUnique({
+    where: { id: cart.id },
+    select: {
+      items: {
+        where: { variantId },
+        select: { id: true, qty: true },
+        take: 1,
+      },
     },
   });
+  const existingItem = existing?.items[0];
 
-  if (existing) {
-    await prisma.cartItem.update({
-      where: { id: existing.id },
+  if (existingItem) {
+    await prisma.cart.update({
+      where: { id: cart.id },
       data: {
-        qty: clamp(1, existing.qty + qty, 20),
+        items: {
+          update: {
+            where: { id: existingItem.id },
+            data: {
+              qty: clamp(1, existingItem.qty + qty, 20),
+            },
+          },
+        },
       },
     });
   } else {
-    await prisma.cartItem.create({
+    await prisma.cart.update({
+      where: { id: cart.id },
       data: {
-        cartId: cart.id,
-        variantId,
-        qty,
+        items: {
+          create: {
+            variantId,
+            qty,
+          },
+        },
       },
     });
   }
@@ -44,28 +65,54 @@ export async function addToCartAction(formData: FormData): Promise<void> {
 }
 
 export async function updateCartItemQtyAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
+
   const itemId = parseFormString(formData.get("itemId"));
   const qty = clamp(1, parseFormInt(formData.get("qty"), 1), 20);
   if (!itemId) {
     return;
   }
 
-  await prisma.cartItem.update({
-    where: { id: itemId },
-    data: { qty },
+  const cart = await getOrCreateCart();
+
+  await prisma.cart.update({
+    where: { id: cart.id },
+    data: {
+      items: {
+        updateMany: {
+          where: { id: itemId },
+          data: { qty },
+        },
+      },
+    },
   });
 
   revalidatePath("/cart");
 }
 
 export async function removeCartItemAction(formData: FormData): Promise<void> {
+  if (!(await isTrustedActionOrigin())) {
+    return;
+  }
+
   const itemId = parseFormString(formData.get("itemId"));
   if (!itemId) {
     return;
   }
 
-  await prisma.cartItem.deleteMany({
-    where: { id: itemId },
+  const cart = await getOrCreateCart();
+
+  await prisma.cart.update({
+    where: { id: cart.id },
+    data: {
+      items: {
+        deleteMany: {
+          id: itemId,
+        },
+      },
+    },
   });
 
   revalidatePath("/cart");
