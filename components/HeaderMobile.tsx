@@ -1,15 +1,11 @@
 "use client";
 
-import type { Category } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { Drawer } from "@/components/ui/Drawer";
-
-type CategoryTree = Category & {
-  children: Array<Category & { children: Category[] }>;
-};
+import type { MegaMenuRoot } from "@/lib/catalog";
 
 export function HeaderMobile({
   roots,
@@ -17,7 +13,7 @@ export function HeaderMobile({
   canAccessAdmin,
   cartQty,
 }: {
-  roots: CategoryTree[];
+  roots: MegaMenuRoot[];
   loggedIn: boolean;
   canAccessAdmin: boolean;
   cartQty: number;

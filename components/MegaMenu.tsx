@@ -1,17 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import type { Category } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ROOT_CATEGORY_MODEL_IMAGES, pickByIndex } from "@/lib/curated-images";
+import type { MegaMenuRoot } from "@/lib/catalog";
 import { resolveProductImageUrl } from "@/lib/product-images";
-
-type CategoryTree = Category & {
-  children: Array<Category & { children: Category[] }>;
-};
 
 const LABELS: Record<string, string> = {
   men: "Men",
@@ -146,7 +142,7 @@ function categoryHref(...segments: string[]): string {
   return `/c/${segments.join("/")}`;
 }
 
-export function MegaMenu({ roots }: { roots: CategoryTree[] }) {
+export function MegaMenu({ roots }: { roots: MegaMenuRoot[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -18,6 +18,16 @@ export type RootCategorySection = {
   products: ProductCardData[];
 };
 
+export type MegaMenuRoot = Prisma.CategoryGetPayload<{
+  include: {
+    children: {
+      include: {
+        children: true;
+      };
+    };
+  };
+}>;
+
 function saleScopeToTargetGroup(scope: string): Category["group"] | null {
   const normalized = ` ${scope.toLowerCase().replace(/[^a-z]+/g, " ")} `;
 
@@ -36,7 +46,7 @@ function saleScopeToTargetGroup(scope: string): Category["group"] | null {
   return null;
 }
 
-export async function getMegaMenuRoots() {
+export async function getMegaMenuRoots(): Promise<MegaMenuRoot[]> {
   return prisma.category.findMany({
     where: {
       parentId: null,
